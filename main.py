@@ -6,7 +6,7 @@ from openai import AsyncOpenAI, OpenAIError
 from openai.types.beta.threads.run import RequiredAction, LastError
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse, FileResponse, StreamingResponse
 from io import BytesIO
 from typing import Any, Dict, List, Optional
 import pandas as pd
@@ -897,14 +897,18 @@ async def create_conciliation(data: ConciliationRequest):
                         hoja[cell].fill = orangeHighlighter
                         info["index"] += 1
 
-        nombre_archivo = "conciliacion.xlsx"
-        wb.save(nombre_archivo)
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
 
-        # Devolver el archivo para descarga
-        return FileResponse(
-            path=nombre_archivo,
-            filename=nombre_archivo,
+        headers = {
+            "Content-Disposition": "attachment; filename=conciliacion.xlsx"
+        }
+        
+        return StreamingResponse(
+            output,
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers=headers
         )
 
     except Exception as e:
